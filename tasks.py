@@ -1,26 +1,43 @@
 import os
-import commands as cmd
+import subprocess
 import files
+import logger
+import commands as cmd
 
-def rafaCompile(compiler: str, workDir: str, srcFiles: list[str], runWithInfo: bool):
-    cmd.compileCommand(compiler, workDir, srcFiles, runWithInfo)
+def rafaCompile(compiler: str, workDir: str, srcFiles: list[str]):
+    cmd.compileCommand(compiler, workDir, srcFiles)
 
-def rafaLink(compiler: str, workDir: str, appName: str, runWithInfo: bool):
-    command = cmd.linkFromBuildCommand(compiler, workDir, appName, runWithInfo)
+def rafaLink(compiler: str, workDir: str, appName: str):
+    command = cmd.linkFromBuildCommand(compiler, workDir, appName)
 
-    os.system(command)
+    subprocess.run(command, shell=True)
 
-def rafaMake(compiler: str, workDir: str, srcFiles: list[str], pAppName: str, runWithInfo: bool):
-    command = cmd.linkFromCppCommand(compiler, workDir, srcFiles, appName, runWithInfo)
+def rafaMake(compiler: str, workDir: str, srcFiles: list[str], appName: str):
+    command = cmd.linkFromCppCommand(compiler, workDir, srcFiles, appName)
 
-    os.system(command)
+    subprocess.run(command, shell=True)
 
-def rafaRun(compiler: str, workDir: str, srcFiles: list[str], pAppName: str, runWithInfo: bool):
-    command = cmd.linkFromCppCommand(compiler, workDir, srcFiles, appName, runWithInfo)
+def rafaRun(compiler: str, workDir: str, srcFiles: list[str], appName: str):
+    command = cmd.linkFromCppCommand(compiler, workDir, srcFiles, appName)
 
-    os.system(command)
+    subprocess.run(command, shell=True)
 
-    print("[RAFABUILDER][MAIN] Compilation complete!")
-    print("[RAFABUILDER][MAIN] Running program...")
+    logger.main("Compilation complete!")
 
-    files.runProgram(currentDir, appName)
+    files.runProgram(workDir, appName)
+
+def rafaClean(workDir: str):
+    cmd.cleanCommand(workDir)
+
+    logger.main("Compilation complete!")
+
+def rafaCheck(workDir: str) -> bool:
+    for file in os.scandir(workDir):
+        if (not os.path.isfile(file)):
+            continue
+
+        if (file.name == "attributes.rafa"):
+            return True
+
+    return False
+    

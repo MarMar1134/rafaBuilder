@@ -2,3 +2,8 @@
 /bin
 /build
 /__pycache__
+/dist
+/.venv
+
+rb.spec
+makeExe.py
