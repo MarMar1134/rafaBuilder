@@ -1,0 +1,5 @@
+compiler("g++")
+
+srcDir("example")
+
+appName("sofia.exe")
