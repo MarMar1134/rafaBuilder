@@ -1,11 +1,10 @@
 import os
 import subprocess
-import files
 import logger
 import commands as cmd
 
-def rafaCompile(compiler: str, workDir: str, srcFiles: list[str]):
-    cmd.compileCommand(compiler, workDir, srcFiles)
+def rafaCompile(compiler: str, workDir: str, filePaths: list[str]):
+    cmd.compileCommand(compiler, workDir, filePaths)
 
 def rafaLink(compiler: str, workDir: str, appName: str):
     command = cmd.linkFromBuildCommand(compiler, workDir, appName)
@@ -13,18 +12,18 @@ def rafaLink(compiler: str, workDir: str, appName: str):
     subprocess.run(command, shell=True)
 
 def rafaMake(compiler: str, workDir: str, srcFiles: list[str], appName: str):
-    command = cmd.linkFromCppCommand(compiler, workDir, srcFiles, appName)
+    command = cmd.linkFromSourceCommand(compiler, workDir, srcFiles, appName)
 
     subprocess.run(command, shell=True)
 
 def rafaRun(compiler: str, workDir: str, srcFiles: list[str], appName: str):
-    command = cmd.linkFromCppCommand(compiler, workDir, srcFiles, appName)
+    command = cmd.linkFromSourceCommand(compiler, workDir, srcFiles, appName)
 
     subprocess.run(command, shell=True)
 
     logger.main("Compilation complete!")
 
-    files.runProgram(workDir, appName)
+    cmd.runCommand(workDir, appName)
 
 def rafaClean(workDir: str):
     cmd.cleanCommand(workDir)

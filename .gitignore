@@ -4,6 +4,11 @@
 /__pycache__
 /dist
 /.venv
+/.venv-1
+
+/fileManager/__pycache__
+
+/rbCache
 
 rb.spec
 makeExe.py

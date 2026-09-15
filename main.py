@@ -1,9 +1,9 @@
 import os
 import sys
-import files
 import logger
-from parser import defineParser
 import tasks as task
+from parser import defineParser
+from fileManager import files, cache
 
 def main():
     parser = defineParser()
@@ -22,7 +22,16 @@ def main():
     srcDir = workDir + "\\" + attributes[files.Attribute.SOURCE_DIR]
     appName = attributes[files.Attribute.APP_NAME]
 
-    srcFiles = files.getFilesFromDir(srcDir)
+    srcFilePaths = files.getFilePathsFromDir(srcDir)
+
+    #cache.createCacheFromList(srcFilePaths)
+
+    #for file in srcFilePaths:
+        #lineNum, cachedDate = cache.readCache(files.getFileName(file))
+        #logger.info(f"Cache line {lineNum}:{cachedDate}")
+        #cache.writeFileToCache(file)
+
+    #cache.writeFilesToCache(srcFilePaths)
 
     option = args.cmd
 
@@ -39,7 +48,7 @@ def main():
     elif(option == "compile"):
         logger.main("Compiling source files...")
 
-        task.rafaCompile(compiler, workDir, srcFiles)
+        task.rafaCompile(compiler, workDir, srcFilePaths)
 
         logger.main("Compilation complete! You can find your object files under '<workDir>/build'")
         sys.exit(0)
@@ -53,14 +62,14 @@ def main():
     elif(option == "make"):
         logger.main("Compiling source files and linking them...")
 
-        task.rafaMake(compiler, workDir, srcFiles, appName)
+        task.rafaMake(compiler, workDir, srcFilePaths, appName)
 
         logger.main("Compilation complete! You can find your executable under '<workDir>/bin'")
         sys.exit(0)
     elif(option == "run"):
         logger.main("Compiling source files and linking them...")
 
-        task.rafaRun(compiler, workDir, srcFiles, appName)
+        task.rafaRun(compiler, workDir, srcFilePaths, appName)
 
         logger.main("Run complete!")
         sys.exit(0)

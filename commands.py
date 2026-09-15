@@ -2,45 +2,55 @@ import os
 import sys
 import subprocess
 import shutil
-import files
 import logger
+import fileManager.files as files
+import fileManager.cache as cache
 from checks import existsDirectoryCheck
 
-def compileCommand(compiler: str, workDir: str, srcFiles: list[str]):
-    buildDir = workDir + "\\build"
+def compileCommand(compiler: str, workDir: str, filePaths: list[str]):
+    buildDir = os.path.join(workDir , "build")
 
     if (not os.path.exists(buildDir)):
         os.mkdir(buildDir)
 
     subprocess.run(f"cd {buildDir}", shell=True)
 
-    for file in srcFiles:
-        if file.split(".").pop(1) != "cpp":
+    for filePath in filePaths:
+        if (filePath.split(".").pop(1) != "cpp"):
             continue
         else:
+            _, cachedDate = cache.readCache(files.getFileName(filePath))
+
+            logger.debug(f"File date: '{os.path.getmtime(filePath)}'; cached date: '{cachedDate}'")
+
+            if (cachedDate == str(os.path.getmtime(filePath))):
+                logger.info(f"File '{files.getFileName(filePath)}' didn't needed to be recompiled")
+                continue
+
             command = compiler + " -c "
 
-            fileName = file.split("\\")
+            fileName = filePath.split("\\")
             fileName.reverse()
             fileName = fileName.pop(0)
 
-            command = command + file + " -o " + "build/" + fileName[:-4] + ".o"
+            command = command + filePath + " -o " + "build/" + fileName[:-4] + ".o"
 
             logger.info(f"Compiling '{fileName}'...")
-
             logger.debug(f"Compile command: {command}")
+
+            cache.writeFileToCache(filePath)
 
             subprocess.run(command, shell=True)
 
 def linkFromBuildCommand(compiler: str, workDir: str, appName: str):
     command = compiler + " "
-    buildDir = workDir + "\\build"
-    binDir = workDir + "\\bin"
+    buildDir = os.path.join(workDir, "build")
+    binDir = os.path.join(workDir, "bin")
 
     if (not existsDirectoryCheck(buildDir, "Can't build as '/build' doesn't exist. Try using 'rb compile' to generate .o files")):
         sys.exit(1)
 
-    objFiles = files.getFilesFromDir(buildDir)
+    objFiles = files.getFilePathsFromDir(buildDir)
 
     for file in objFiles:
         if (not file.split(".").pop(1) == "o"):
@@ -55,15 +65,13 @@ def linkFromBuildCommand(compiler: str, workDir: str, appName: str):
     if (not os.path.exists(binDir)):
         os.mkdir(binDir)
 
-    
-
     command = command + "-o " + "bin/" + appName
 
     logger.debug(f"Linker command: {command}")
 
     return command
 
-def linkFromCppCommand(compiler: str, workDir: str, srcFiles: list[str], appName: str):
+def linkFromSourceCommand(compiler: str, workDir: str, srcFiles: list[str], appName: str):
     command = compiler
 
     for file in srcFiles:
@@ -107,3 +115,12 @@ def cleanCommand(workDir: str):
     logger.info("Removing '/bin'...")
 
     shutil.rmtree(binDir, ignore_errors=True)
+
+def runCommand(currentDir: str, appName: str):
+    execDir = currentDir + "\\bin\\"
+    execCommand = ".\\bin\\" + appName
+
+    logger.info(f"Running '{execCommand}' from '{execDir}'")
+
+    subprocess.run(f"cd {execDir}", shell=True)
+    subprocess.run(execCommand, shell=True)

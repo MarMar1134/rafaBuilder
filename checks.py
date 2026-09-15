@@ -14,13 +14,16 @@ def noAttributesCheck(configFile: str, noCompiler: bool, noSrcDir: bool, noAppNa
         logger.error(f"'{configFile}' doesn't have 'srcDir' attribute")
         sys.exit(1)
     elif(not noAppName):
-        logger.error(f"'{configFile}' doesn't have 'appName' attribute")
-        sys.exit(1)
+        logger.warning(f"'{configFile}' doesn't have 'appName' attribute")
+        #sys.exit(1)
 
 def compilerInstalledCheck(configFile: str, compiler: str):
     if (not shutil.which(compiler)):
         logger.error(f"On {configFile}, '{compiler}' compiler is not present on this system's PATH")
         sys.exit(1)
+
+def existsPathCheck(filePath: str):
+    return os.path.exists(filePath)     
 
 def unknownDirectoryCheck(configFile: str | None, dir: str, customMsg: str | None) -> bool:
     baseMessage = "" 
@@ -33,8 +36,8 @@ def unknownDirectoryCheck(configFile: str | None, dir: str, customMsg: str | Non
         baseMessage = baseMessage + customMsg
 
     if(not os.path.exists(dir)):
-            logger.error(baseMessage)
-            return False
+        logger.error(baseMessage)
+        return False
 
     return True
 
