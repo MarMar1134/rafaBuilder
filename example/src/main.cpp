@@ -13,7 +13,7 @@ int main(){
     int div = 12 / 3;
 
     std::cout << "- a = " << a << "\n- b = " << b << "\n- a + b = " << Sum << "\n- b - a = " << Rest << "\n- (a + b) * (b - a) = " << Mul;
-    std::cout << "\n" << div;
+    std::cout << "\n" << div << "\nSofia es negra";
 
     return 0;
 }

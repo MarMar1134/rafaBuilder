@@ -1,24 +1,17 @@
 import os
 import sys
 from fileManager.files import getFileExtension, getFileExtensionFromPath, getFileName
-import logger
+import util.logger as logger
 
 HEADERS_CACHE_FILE = "headers.rach"
-SRC_CACHE_FILE = "sources.rach"
-CACHE_FILE_NAME = "cache.rach"
+SOURCES_CACHE_FILE = "sources.rach"
+OBJECTS_CACHE_FILE = "objects.rach"
+STATIC_LIBS_CACHE_FILE = "staticLibs.cach"
 
 HEADER_EXTENSIONS = ["h", "hpp"]
 SRC_EXTENSIONS = ["c", "cpp"]
 
 cacheDir = os.path.join(os.getcwd(), "rbCache")
-
-def makeFilePathAndDatesTable(filePaths: list[str]) -> dict[str, str]:
-    fileTable = {}
-
-    for filePath in filePaths:
-        fileTable[filePath] = os.path.getmtime(filePath)
-
-    return fileTable
 
 def assignCachePath(requestedFile: str, errorMessage: str):
     cachePath = ""
@@ -27,7 +20,11 @@ def assignCachePath(requestedFile: str, errorMessage: str):
         if (getFileExtension(requestedFile) in HEADER_EXTENSIONS):
             cachePath = os.path.join(cacheDir, HEADERS_CACHE_FILE)
         elif (getFileExtension(requestedFile) in SRC_EXTENSIONS):
-            cachePath = os.path.join(cacheDir, SRC_CACHE_FILE)
+            cachePath = os.path.join(cacheDir, SOURCES_CACHE_FILE)
+        elif (getFileExtension(requestedFile) == "o"):
+            cachePath = os.path.join(cacheDir, OBJECTS_CACHE_FILE)
+        elif (getFileExtension(requestedFile) == "a"):
+            cachePath = os.path.join(cacheDir, STATIC_LIBS_CACHE_FILE)
         else:
             logger.error(errorMessage)
             sys.exit(1)
@@ -35,7 +32,11 @@ def assignCachePath(requestedFile: str, errorMessage: str):
         if (getFileExtensionFromPath(requestedFile) in HEADER_EXTENSIONS):
             cachePath = os.path.join(cacheDir, HEADERS_CACHE_FILE)
         elif (getFileExtensionFromPath(requestedFile) in SRC_EXTENSIONS):
-            cachePath = os.path.join(cacheDir, SRC_CACHE_FILE)
+            cachePath = os.path.join(cacheDir, SOURCES_CACHE_FILE)
+        elif (getFileExtensionFromPath(requestedFile) == "o"):
+            cachePath = os.path.join(cacheDir, OBJECTS_CACHE_FILE)
+        elif (getFileExtensionFromPath(requestedFile) == "a"):
+            cachePath = os.path.join(cacheDir, STATIC_LIBS_CACHE_FILE)
         else:
             logger.error(errorMessage)
             sys.exit(1)
@@ -48,7 +49,9 @@ def inicializeCache():
         os.makedirs(cacheDir)
         
     headersCache = os.path.join(cacheDir, HEADERS_CACHE_FILE)
-    sourcesCache = os.path.join(cacheDir, SRC_CACHE_FILE)
+    sourcesCache = os.path.join(cacheDir, SOURCES_CACHE_FILE)
+    objectsCache = os.path.join(cacheDir, OBJECTS_CACHE_FILE)
+    staticLibsCache = os.path.join(cacheDir, STATIC_LIBS_CACHE_FILE)
 
     if (not os.path.exists(headersCache)):
         with open(headersCache, "x") as hCache:
@@ -58,31 +61,43 @@ def inicializeCache():
         with open(sourcesCache, "x") as sCache:
             sCache.close()
 
-def createCache(filePath: str):
-    if (not os.path.exists(cacheDir)):
-            logger.debug("Creating 'rbCache' directory...")
-            os.makedirs(cacheDir)
-    
-    headersCache = os.path.join(cacheDir, HEADERS_CACHE_FILE)
-    sourcesCache = os.path.join(cacheDir, SRC_CACHE_FILE)
+    if (not os.path.exists(objectsCache)):
+        with open(objectsCache, "x") as oCache:
+            oCache.close()
 
-    fileFormat = getFileName(filePath) + ":" + str(os.path.getmtime(filePath)) + "\n"
+    if (not os.path.exists(staticLibsCache)):
+        with open(staticLibsCache, "x") as slCache:
+            slCache.close()
 
-    if (getFileExtensionFromPath(filePath) in HEADER_EXTENSIONS):
-        if (not os.path.exists(headersCache)):
-            with open(headersCache, "x") as hCache:
-                hCache.write(fileFormat)
-        else:
-            logger.warning(f"Tried to create existing cache file: '{headersCache}'")
-    elif (getFileExtensionFromPath(filePath) in SRC_EXTENSIONS):
-        if (not os.path.exists(sourcesCache)):
-            with open(sourcesCache, "x") as sCache:
-                sCache.write(fileFormat)
-        else:
-            logger.warning(f"Tried to create existing cache file: '{sourcesCache}'")
-    else:
-        logger.error(f"Unknown file format: '{getFileName(filePath)}'")
+def readStaticLibCache(requestedFile: str):
+    cachePath = os.path.join(cacheDir, STATIC_LIBS_CACHE_FILE)
+    objFiles = {}
+
+    if (not os.path.exists(cachePath)):
+        logger.error(f"Tried to read unexistent cache file: '{cachePath}'")
         sys.exit(1)
+
+    logger.debug(f"Requested file: '{requestedFile}'")
+    with open(cachePath, "r") as cacheFile:
+        lines = cacheFile.readlines()
+
+        for _, line in enumerate(lines):
+            pureLine = line.strip()
+
+            if (requestedFile.strip() in pureLine):
+                logger.debug(f"Found '{requestedFile.strip()}' on cache file '{STATIC_LIBS_CACHE_FILE}'")
+
+                libObjects = pureLine.split("{").pop(1).split("}").pop(0)
+
+                for libObject in libObjects.split(","):
+                    objName = libObject.split(":").pop(0)
+                    objDate = libObject.split(":").pop(1)
+
+                    objFiles[objName] = objDate
+
+                return objFiles
+
+    return None
 
 def readCache(requestedFile: str):
     cachePath = assignCachePath(requestedFile, f"Tried to read unknown file from cache: '{requestedFile}'")
@@ -91,6 +106,7 @@ def readCache(requestedFile: str):
         logger.error(f"Tried to read unexistent cache file: '{cachePath}'")
         sys.exit(1)
 
+    logger.debug(f"Requested file: '{requestedFile}'")
     with open(cachePath, "r") as cache:
         lines = cache.readlines()
 
@@ -106,7 +122,28 @@ def readCache(requestedFile: str):
 
     return None, None
 
-def writeFileToCache(filePath: str):
+def writeStaticLibCache(libName: str, objFileDates: dict[str, str]):
+    cachePath = os.path.join(cacheDir, STATIC_LIBS_CACHE_FILE)
+
+    if (not os.path.exists(cachePath)):
+        logger.error(f"Tried to write to unkwown cache: '{cachePath}'")
+        sys.exit(1)
+
+    fileFormat = libName.strip() + ":{"
+    objFormat = ""
+
+    for objFile, objDate in objFileDates.items():
+        objFormat += objFile + ":" + objDate + ","
+        
+    fileFormat += objFormat
+    fileFormat = fileFormat[:-1] + "}"
+
+    with open(cachePath, "r+") as cacheFile:
+        cacheFile.writelines(fileFormat)
+        logger.debug(f"Written cache line: '{fileFormat}'")
+    
+
+def writeCache(filePath: str):
     fileName = getFileName(filePath)
     cachePath = assignCachePath(filePath, f"Tried to write unknown file to cache: '{getFileName(filePath)}'")
 
@@ -133,7 +170,3 @@ def writeFileToCache(filePath: str):
 
     with open(cachePath, "w") as cacheFile:
         cacheFile.writelines(lines)
-
-def writeFilesToCache(filePaths: list[str]):
-    for filePath in filePaths:
-        writeFileToCache(filePath)

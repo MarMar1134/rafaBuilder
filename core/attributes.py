@@ -1,8 +1,8 @@
 import os
 import sys
-import logger
+import util.logger as logger
 from enum import Enum
-from checks import noAttributesCheck, compilerMatchesLanguageCheck, compilerInstalledCheck, existsSrcDirCheck
+from util.checks import noAttributesCheck, compilerMatchesLanguageCheck, compilerInstalledCheck, existsSrcDirCheck
 
 class Attribute(Enum):
     COMPILER = 0

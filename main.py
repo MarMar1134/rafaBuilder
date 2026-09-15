@@ -1,34 +1,41 @@
 import os
 import sys
-import logger
+import util.logger as logger
 import core.tasks as task
 import core.attributes as att
 import fileManager.cache as cache
 
-from argParser import defineParser
+from util.argParser import defineParser
 from fileManager import files
 
 def main():
     parser = defineParser()
     args = parser.parse_args()
     logger.configure(args)
-    cache.inicializeCache()
+    workDir: str = os.getcwd()
 
     if (args.cmd is None):
         parser.print_help()
         sys.exit(1)
 
-    workDir: str = os.getcwd()
+    option = args.cmd
+
+    if (option == "init"):
+        logger.main("Initializing working directory...")
+
+        task.rafaInit(args)
+
+        logger.task(f"Working directory '{workDir}' has been initialized!")
+        sys.exit(0)
 
     attributes = att.getAttributes(workDir)
 
     compiler = attributes[att.Attribute.COMPILER]
     srcDir = workDir + "\\" + attributes[att.Attribute.SOURCE_DIR]
     appName = attributes[att.Attribute.APP_NAME]
+    projectType = attributes[att.Attribute.PROJECT_TYPE]
 
     srcFilePaths = files.getFilePathsFromDir(srcDir)
-
-    option = args.cmd
 
     if (option == "check"):
         logger.main("Searching for 'attributes.rafa'")
@@ -40,7 +47,16 @@ def main():
             sys.exit(1)
         else:
             logger.task(f"Config file 'attributes.rafa' found on '{workDir}'")
-    elif(option == "compile"):
+
+            logger.main(f"'compiler' set to: '{attributes[att.Attribute.COMPILER]}'")
+            logger.main(f"'srcDir' set to: '{attributes[att.Attribute.SOURCE_DIR]}'")
+            logger.main(f"'appName' set to: '{attributes[att.Attribute.APP_NAME]}'")
+            logger.main(f"'projectType' set to: '{attributes[att.Attribute.PROJECT_TYPE]}'")
+            sys.exit(0)
+
+    cache.inicializeCache()
+
+    if(option == "compile"):
         task.rafaCompile(compiler, workDir, srcFilePaths)
 
         logger.task("Task completed! You can find your object files under '<workDir>/build'")
@@ -57,7 +73,13 @@ def main():
         sys.exit(0)
     elif(option == "run"):
         logger.main("Starting run...")
-        task.rafaRun(compiler, workDir, srcFilePaths, appName)
+
+        if (projectType != "executable"):
+            logger.warning(f"'projectType' is set to '{projectType}', this task will be treated as 'make'")
+
+        task.rafaRun(compiler, workDir, srcFilePaths, appName, projectType)
+
+        logger.task("Run complete!")
 
         sys.exit(0)
     elif(option == "clean"):
@@ -67,6 +89,13 @@ def main():
 
         logger.task("Cleaning complete!")
 
+        sys.exit(0)
+    elif(option == "remove"):
+        logger.main(f"Removing RafaBuilder...")
+
+        task.rafaRemove(workDir)
+
+        logger.task(f"RafaBuilder has been removed from working directory '{workDir}'")
         sys.exit(0)
 
 if __name__ == "__main__":

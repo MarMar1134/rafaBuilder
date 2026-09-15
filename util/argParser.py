@@ -1,26 +1,31 @@
 import argparse
-from version import __version__ as ver
+from util.version import __version__ as ver
 
 def defineParser():
     #Arguments
     common = argparse.ArgumentParser(add_help=False)
 
     #-v
-    common.add_argument("-v", "--verbose", action="store_true", dest="verbose",
-        help="runs the specified command with extra information while working")
+    common.add_argument("-v", "--verbose", action="store_true", default=False, dest="verbose", help="runs the specified command with extra information while working")
 
     #-q
-    common.add_argument("-q", "--quiet", action="store_true", dest="quiet",
-        help="disables any non-error message")
+    common.add_argument("-q", "--quiet", action="store_true", default=False, dest="quiet", help="disables any non-error message")
 
     #-d
-    common.add_argument("-d", "--debug", action="store_true", dest="debug",
-        help="enables debug mode, showing additional messages about the compilation process")
+    common.add_argument("-d", "--debug", action="store_true", default=False, dest="debug", help="enables debug mode, showing additional messages about the compilation process")
 
     parser = argparse.ArgumentParser(prog="rb", parents=[common], description="RafaBuilder base command")
     parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {ver}")
 
     commands = parser.add_subparsers(title="commands", dest="cmd")
+
+    #Init command
+    initParser = commands.add_parser(name="init", parents=[common], help="Initializes the current directory with a default 'attributes.rafa' file.",
+        description="This command creates a default 'attributes.rafa' file on the calle directory. It also creates a '/rbCache' directory with empty cache files.")
+    initParser.add_argument("-co","--compiler", type=str, default="g++", required=False, dest="compiler", help="specifies the compiler used on this project")
+    initParser.add_argument("-s", "--source", type=str, default="src", required=False, dest="srcDir", help="specifies the source directory of the project")
+    initParser.add_argument("-a", "--appname", type=str, default="myProject", required=False, dest="appName", help="specifies the name of the application to be compiled")
+    initParser.add_argument("-pt", "--projecttype", type=int, default=0, required=False, dest="projectType", help="specifies the type of the project. 0=executable; 1=staticLib; 2=dynamicLib")
 
     #Check command
     commands.add_parser(name="check", parents=[common], help="Scans the working directory searching for 'attributes.rafa'",
@@ -48,7 +53,11 @@ def defineParser():
             " If no .o files are found, searches for .cpp and/or .c files and makes a full compilation-linking process. If succesfull, runs the executable.")
 
     #Clean command
-    commands.add_parser(name="clean", parents=[common], help="Removes '/build' and '/bin' from the working directory",
+    commands.add_parser(name="clean", parents=[common], help="Removes '/build', '/bin' and '/rbCache' from the working directory",
         description="This command deletes '/build' and '/bin' directories with all its contents. If some of the directories doesn't exists, skips them and continues the search.")
+
+    #Remove command
+    commands.add_parser(name="remove", parents=[common], help="Removes '/build', '/bin', '/rbCache' and 'attrbutes.rafa' from the working directory",
+        description="This command deletes the entire project structure utilized by RafaBuilder to compile your project. Source files and header files aren't removed.")
 
     return parser

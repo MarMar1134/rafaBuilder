@@ -1,7 +1,7 @@
 import os
 import sys
 import shutil
-import logger
+import util.logger as logger
 
 CPP_COMPILERS = ["g++", "clang++", "c++"]
 C_COMPILERS = ["gcc", "clang", "cc"]
@@ -25,13 +25,10 @@ def compilerInstalledCheck(configFile: str, compiler: str):
         logger.error(f"On {configFile}, '{compiler}' compiler is not present on this system's PATH")
         sys.exit(1)
 
-def existsPathCheck(filePath: str):
-    return os.path.exists(filePath)     
-
 def existsSrcDirCheck(srcDir: str):
     workingDir = os.path.join(os.getcwd(), srcDir)
 
-    return existsPathCheck(workingDir)
+    return os.path.exists(workingDir)
 
 def isValidFileCheck(fileName: str):
     fileExtension = fileName.split(".").pop(1)

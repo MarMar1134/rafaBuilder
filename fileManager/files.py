@@ -1,12 +1,12 @@
 import os
 import sys
-import logger
-from checks import existsPathCheck, isValidFileCheck
+import util.logger as logger
+from util.checks import isValidFileCheck
 
 def getFilePathsFromDir(srcDir: str) -> list[str]:
     srcFilePaths = []
 
-    if (not existsPathCheck(srcDir)):
+    if (not os.path.exists(srcDir)):
         logger.error(f"Directory '{srcDir}' doesn't exists")
         sys.exit(1)
     
