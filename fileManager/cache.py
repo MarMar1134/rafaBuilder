@@ -42,41 +42,21 @@ def assignCachePath(requestedFile: str, errorMessage: str):
 
     return cachePath
 
-def createCacheFromList(filePaths: list[str]):
+def inicializeCache():
     if (not os.path.exists(cacheDir)):
         logger.debug("Creating 'rbCache' directory...")
         os.makedirs(cacheDir)
-
+        
     headersCache = os.path.join(cacheDir, HEADERS_CACHE_FILE)
     sourcesCache = os.path.join(cacheDir, SRC_CACHE_FILE)
 
-    headerFiles = []
-    sourceFiles = []
-    fileDates = makeFilePathAndDatesTable(filePaths)
-
-    for filePath in filePaths:
-        fileFormat = getFileName(filePath) + ":" + str(fileDates[filePath]) + "\n"
-
-        if (getFileExtensionFromPath(filePath) in HEADER_EXTENSIONS):
-            headerFiles.append(fileFormat)
-        elif (getFileExtensionFromPath(filePath) in SRC_EXTENSIONS):
-            sourceFiles.append(fileFormat)
-        else:
-            logger.error(f"Unknown file format: '{getFileName(filePath)}'")
-
     if (not os.path.exists(headersCache)):
         with open(headersCache, "x") as hCache:
-            for headerFile in headerFiles:
-                hCache.write(headerFile)
-    else:
-        logger.warning(f"Tried to create existing cache file: '{headersCache}'")
+            hCache.close()
 
     if (not os.path.exists(sourcesCache)):
         with open(sourcesCache, "x") as sCache:
-            for sourceFile in sourceFiles:
-                sCache.write(sourceFile)
-    else:
-        logger.warning(f"Tried to create existing cache file: '{sourcesCache}'")
+            sCache.close()
 
 def createCache(filePath: str):
     if (not os.path.exists(cacheDir)):
@@ -131,7 +111,8 @@ def writeFileToCache(filePath: str):
     cachePath = assignCachePath(filePath, f"Tried to write unknown file to cache: '{getFileName(filePath)}'")
 
     if (not os.path.exists(cachePath)):
-        createCache(filePath)
+        logger.error(f"Tried to write to unkwown cache: '{cachePath}'")
+        sys.exit(1)
     
     lineIndex, cachedFileDate = readCache(fileName)
     currentFileDate = str(os.path.getmtime(filePath))

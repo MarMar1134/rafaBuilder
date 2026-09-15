@@ -7,6 +7,7 @@
 /.venv-1
 
 /fileManager/__pycache__
+/core/__pycache__
 
 /rbCache
 

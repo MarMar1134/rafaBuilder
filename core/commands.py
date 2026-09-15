@@ -5,7 +5,11 @@ import shutil
 import logger
 import fileManager.files as files
 import fileManager.cache as cache
-from checks import existsDirectoryCheck
+import core.attributes as attribute
+import core.linker as linker
+
+from core.attributes import Attribute
+from checks import existsPathCheck
 
 def compileCommand(compiler: str, workDir: str, filePaths: list[str]):
     buildDir = os.path.join(workDir , "build")
@@ -42,59 +46,21 @@ def compileCommand(compiler: str, workDir: str, filePaths: list[str]):
 
             subprocess.run(command, shell=True)
 
-def linkFromBuildCommand(compiler: str, workDir: str, appName: str):
-    command = compiler + " "
-    buildDir = os.path.join(workDir, "build")
-    binDir = os.path.join(workDir, "bin")
+def linkCommand(compiler: str, workDir: str, appName: str):
+    proyectAttributes = attribute.getAttributes(workDir)
+    command = ""
 
-    if (not existsDirectoryCheck(buildDir, "Can't build as '/build' doesn't exist. Try using 'rb compile' to generate .o files")):
-        sys.exit(1)
-
-    objFiles = files.getFilePathsFromDir(buildDir)
-
-    for file in objFiles:
-        if (not file.split(".").pop(1) == "o"):
-            continue
-        
-        logger.info(f"Linking '{file}'...")
-
-        file = file.replace("\\", "/")
-
-        command = command + file + " "
-
-    if (not os.path.exists(binDir)):
-        os.mkdir(binDir)
-
-    command = command + "-o " + "bin/" + appName
-
-    logger.debug(f"Linker command: {command}")
-
-    return command
-
-def linkFromSourceCommand(compiler: str, workDir: str, srcFiles: list[str], appName: str):
-    command = compiler
-
-    for file in srcFiles:
-        if file.split(".").pop(1) != "cpp":
-            continue
-        else:
-            logger.info(f"Compiling '{file}'...")
-
-            file = file.replace("\\", "/")
-            command = command + " " + file
-
-    if not os.path.exists(workDir + "\\bin"):
-        os.mkdir(workDir + "\\bin")
-
-    command = command + " -o bin/" + appName
-
-    logger.debug(f"Compile command: {command}")
+    if (proyectAttributes[Attribute.PROJECT_TYPE] == "executable"):
+        command = linker.linkExecutable(compiler, workDir, appName)
+    elif (proyectAttributes[Attribute.PROJECT_TYPE] == "staticLib"):
+        command = linker.linkStaticLib(workDir, appName)
 
     return command
 
 def cleanCommand(workDir: str):
-    buildDir = workDir + "\\build"
-    binDir = workDir + "\\bin"
+    buildDir = os.path.join(workDir, "build")
+    binDir = os.path.join(workDir, "bin")
+    cacheDir = os.path.join(workDir, "rbCache")
 
     if (not os.path.exists(buildDir) and not os.path.exists(binDir)):
         logger.warning("Nothing to clean. '/build' and '/bin' don't exist")
@@ -115,6 +81,11 @@ def cleanCommand(workDir: str):
     logger.info("Removing '/bin'...")
 
     shutil.rmtree(binDir, ignore_errors=True)
+
+    logger.debug(f"/rbCache full path: {cacheDir}")
+    logger.info(f"Removing /rbCache...")
+
+    shutil.rmtree(cacheDir, ignore_errors=True)
 
 def runCommand(currentDir: str, appName: str):
     execDir = currentDir + "\\bin\\"

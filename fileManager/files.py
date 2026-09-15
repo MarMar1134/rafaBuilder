@@ -1,90 +1,13 @@
 import os
 import sys
 import logger
-from checks import noAttributesCheck, compilerMatchesLanguageCheck, compilerInstalledCheck, unknownDirectoryCheck, existsDirectoryCheck
-from enum import Enum
-
-CONFIG_FILE_NAME = "attributes.rafa"
-
-class Attribute(Enum):
-    COMPILER = 0
-    SOURCE_DIR = 1
-    APP_NAME = 2
-
-def getAttributes(workDir: str):
-    configPath = os.path.join(workDir, CONFIG_FILE_NAME)
-
-    if (not os.path.isfile(configPath)):
-        logger.error(f"'{CONFIG_FILE_NAME}' not found in '{workDir}'")
-        sys.exit(1)
-
-    attributes = {}
-
-    #TODO: Make an attribute table
-    hasCompilerAttribute: bool = False
-    hasSrcDirAttribute: bool = False
-    hasAppNameAttribute: bool = False
-
-    with open(workDir + "\\" + CONFIG_FILE_NAME) as configFile:
-        for lineNumber, line in enumerate(configFile.readlines(), start=1):
-            currentLine = line.strip()
-
-            if (not currentLine):
-                continue
-
-            if("compiler" in currentLine and not hasCompilerAttribute):
-                attribute = currentLine.split("\"")
-
-                if (len(attribute) < 2 or attribute[1].strip() == ""):
-                    logger.error(f"On {CONFIG_FILE_NAME}, Wrong format on line {lineNumber}: '{currentLine}'")
-                    sys.exit(1)
-            
-                attributes[Attribute.COMPILER] = attribute[1]
-
-                hasCompilerAttribute = True
-            elif("srcDir" in currentLine and not hasSrcDirAttribute):
-                attribute = currentLine.split("\"")
-                
-                if (len(attribute) < 2 or attribute[1].strip() == ""):
-                    logger.error(f"On {CONFIG_FILE_NAME}, Wrong format on line {lineNumber}: '{currentLine}'")
-                    sys.exit(1)
-            
-                attributes[Attribute.SOURCE_DIR] = attribute[1]
-
-                hasSrcDirAttribute = True
-            elif("appName" in currentLine and not hasAppNameAttribute):
-                attribute = currentLine.split("\"")
-                                
-                if (len(attribute) < 2 or attribute[1].strip() == ""):
-                    logger.error(f"On {CONFIG_FILE_NAME}, Wrong format on line {lineNumber}: '{currentLine}'")
-                    sys.exit(1)
-            
-                attributes[Attribute.APP_NAME] = attribute[1]
-
-                hasAppNameAttribute = True
-    
-    noAttributesCheck(CONFIG_FILE_NAME, hasCompilerAttribute, hasSrcDirAttribute, hasAppNameAttribute)
-
-    isCorrectCompiler = compilerMatchesLanguageCheck(attributes[Attribute.SOURCE_DIR], attributes[Attribute.COMPILER])
-
-    if (isCorrectCompiler == -1):
-        logger.warning(f"Utilizing a 'c' compiler to work with 'cpp' files")
-    elif(isCorrectCompiler == -2):
-        logger.warning(f"Utilizing a 'cpp' compiler to work with 'c' files")
-
-    compilerInstalledCheck(CONFIG_FILE_NAME, attributes[Attribute.COMPILER])
-    
-    if(not unknownDirectoryCheck(CONFIG_FILE_NAME, attributes[Attribute.SOURCE_DIR], None)):
-        sys.exit(1)
-
-    return attributes
+from checks import existsPathCheck, isValidFileCheck
 
 def getFilePathsFromDir(srcDir: str) -> list[str]:
-    import fileManager.cache as cache
-
     srcFilePaths = []
 
-    if (not existsDirectoryCheck(srcDir, f"Path: '{srcDir}' is not valid")):
+    if (not existsPathCheck(srcDir)):
+        logger.error(f"Directory '{srcDir}' doesn't exists")
         sys.exit(1)
     
     srcFiles = os.scandir(srcDir)
@@ -97,9 +20,11 @@ def getFilePathsFromDir(srcDir: str) -> list[str]:
         if (os.path.isfile(srcFfile)):
             filePath = srcFfile.path.split(os.getcwd() + "\\").pop(1)
 
-            logger.debug(f"File path added: '{filePath}'")
+            if (not isValidFileCheck(getFileName(filePath))):
+                continue
 
             srcFilePaths.append(filePath)
+            logger.debug(f"File path added: '{filePath}'")
         else:
             newDir = os.path.join(srcDir, srcFfile.name)
 

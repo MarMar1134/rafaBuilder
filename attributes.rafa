@@ -2,4 +2,6 @@ compiler("g++")
 
 srcDir("example")
 
-appName("sofia.exe")
+appName("sofia.nene.crack")
+
+projectType("executable")

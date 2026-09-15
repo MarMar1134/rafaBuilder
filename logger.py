@@ -4,8 +4,12 @@ def configure(args):
     qModeEnabled = args.quiet
     dModeEnabled = args.debug
 
+def task(msg):
+    print(f"[RAFABUILDER][TASK] {msg}")
+
 def main(msg):
-    print(f"[RAFABUILDER][MAIN] {msg}")
+    if (not qModeEnabled):
+        print(f"[RAFABUILDER][MAIN] {msg}")
 
 def info(msg):
     if (vModeEnabled and not qModeEnabled):

@@ -6,7 +6,7 @@ import logger
 CPP_COMPILERS = ["g++", "clang++", "c++"]
 C_COMPILERS = ["gcc", "clang", "cc"]
 
-def noAttributesCheck(configFile: str, noCompiler: bool, noSrcDir: bool, noAppName: bool):
+def noAttributesCheck(configFile: str, noCompiler: bool, noSrcDir: bool, noAppName: bool, noProjectType: bool):
     if (not noCompiler):
         logger.error(f"'{configFile}' doesn't have 'compiler' attribute")
         sys.exit(1)
@@ -14,8 +14,11 @@ def noAttributesCheck(configFile: str, noCompiler: bool, noSrcDir: bool, noAppNa
         logger.error(f"'{configFile}' doesn't have 'srcDir' attribute")
         sys.exit(1)
     elif(not noAppName):
-        logger.warning(f"'{configFile}' doesn't have 'appName' attribute")
-        #sys.exit(1)
+        logger.error(f"'{configFile}' doesn't have 'appName' attribute")
+        sys.exit(1)
+    elif(not noProjectType):
+        logger.error(f"'{configFile}' doesn't have 'projectType' attribute")
+        sys.exit(1)
 
 def compilerInstalledCheck(configFile: str, compiler: str):
     if (not shutil.which(compiler)):
@@ -25,24 +28,17 @@ def compilerInstalledCheck(configFile: str, compiler: str):
 def existsPathCheck(filePath: str):
     return os.path.exists(filePath)     
 
-def unknownDirectoryCheck(configFile: str | None, dir: str, customMsg: str | None) -> bool:
-    baseMessage = "" 
+def existsSrcDirCheck(srcDir: str):
+    workingDir = os.path.join(os.getcwd(), srcDir)
 
-    if (not (configFile is None)):
-        baseMessage = baseMessage + f"On {configFile}, Source directory '{dir}' does not exist"
-    elif(customMsg is None):
-        baseMessage = baseMessage + f"Source directory '{dir}' does not exist"
-    else:
-        baseMessage = baseMessage + customMsg
+    return existsPathCheck(workingDir)
 
-    if(not os.path.exists(dir)):
-        logger.error(baseMessage)
-        return False
+def isValidFileCheck(fileName: str):
+    fileExtension = fileName.split(".").pop(1)
 
-    return True
-
-def existsDirectoryCheck(dir: str, customMsg: str | None) -> bool:
-    return unknownDirectoryCheck(None, dir, customMsg)
+    return fileExtension == "cpp" or fileExtension == "c" \
+            or fileExtension == "hpp" or fileExtension == "h" \
+            or fileExtension == "o"
 
 def compilerMatchesLanguageCheck(srcDir: str, compiler: str):
     workDir = os.getcwd()
