@@ -6,7 +6,7 @@ import core.attributes as att
 import fileManager.cache as cache
 
 from util.argParser import defineParser
-from fileManager import files
+from fileManager.files import FilePath
 
 def main():
     parser = defineParser()
@@ -35,8 +35,6 @@ def main():
     appName = attributes[att.Attribute.APP_NAME]
     projectType = attributes[att.Attribute.PROJECT_TYPE]
 
-    srcFilePaths = files.getFilePathsFromDir(srcDir)
-
     if (option == "check"):
         logger.main("Searching for 'attributes.rafa'")
 
@@ -55,6 +53,7 @@ def main():
             sys.exit(0)
 
     cache.inicializeCache()
+    srcFilePaths: list[FilePath] = FilePath.getFilePaths(srcDir)
 
     if(option == "compile"):
         task.rafaCompile(compiler, workDir, srcFilePaths)

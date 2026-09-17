@@ -9,8 +9,9 @@
 /fileManager/__pycache__
 /core/__pycache__
 /util/__pycache__
+/tests
+makeExe.py
 
 /rbCache
 
 rb.spec
-makeExe.py

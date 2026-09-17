@@ -3,12 +3,13 @@ import sys
 import subprocess
 import shutil
 import util.logger as logger
-import fileManager.files as files
 import fileManager.cache as cache
 import core.attributes as attribute
 import core.linker as linker
 
 from core.attributes import Attribute
+from fileManager.files import FilePath
+from util.checks import isSourceFileCheck
 
 def initCommand(args):
     cache.inicializeCache()
@@ -46,7 +47,7 @@ def initCommand(args):
     with open(attributesPath, "x") as attributesFile:
         attributesFile.writelines(attributeLines)
 
-def compileCommand(compiler: str, workDir: str, filePaths: list[str]):
+def compileCommand(compiler: str, workDir: str, filePaths: list[FilePath]):
     objFilePath = os.path.join(workDir , "build")
 
     if (not os.path.exists(objFilePath)):
@@ -55,52 +56,50 @@ def compileCommand(compiler: str, workDir: str, filePaths: list[str]):
     subprocess.run(f"cd {objFilePath}", shell=True)
 
     for filePath in filePaths:
-        if (filePath.split(".").pop(1) != "cpp"):
+        if (not isSourceFileCheck(filePath.extension)):
+            logger.debug(f"File '{filePath.name}' is a '{filePath.extension}' file")
             continue
         else:
-            _, cachedDate = cache.readCache(files.getFileName(filePath))
+            _, cachedDate = cache.readCache(filePath)
 
-            if (cachedDate == str(os.path.getmtime(filePath))):
-                logger.info(f"File '{files.getFileName(filePath)}' didn't needed to be recompiled")
-                logger.debug(f"Skipping compiling process for '{files.getFileName(filePath)}', as it wasn't needed")
+            if (cachedDate == filePath.date):
+                logger.info(f"File '{filePath.name}' didn't needed to be recompiled")
+                logger.debug(f"Skipping compiling process for '{filePath.name}', as it wasn't needed")
                 continue
 
             command = compiler + " -c "
 
-            fileName = filePath.split("\\")
-            fileName.reverse()
-            fileName = fileName.pop(0)
+            command = command + filePath.path + " -o " + "build/" + filePath.name[:-4] + ".o"
 
-            command = command + filePath + " -o " + "build/" + fileName[:-4] + ".o"
-
-            logger.info(f"Compiling '{fileName}'...")
+            logger.info(f"Compiling '{filePath.name}'...")
             logger.debug(f"Compile command: {command}")
 
             cache.writeCache(filePath)
 
             subprocess.run(command, shell=True)
 
-            objFilePath = os.path.join("build", fileName[:-4] + ".o")
+            objFilePath = FilePath(os.path.join("build", filePath.name[:-4] + ".o"))
 
-            logger.debug(f"Object file path: '{objFilePath}'")
+            logger.debug(f"Object file path: '{objFilePath.path}'")
 
             cache.writeCache(objFilePath)
 
 def linkCommand(compiler: str, workDir: str, appName: str):
-    proyectAttributes = attribute.getAttributes(workDir)
+    projectAttributes = attribute.getAttributes(workDir)
 
-    if (proyectAttributes[Attribute.PROJECT_TYPE] == "executable"):
+    if (projectAttributes[Attribute.PROJECT_TYPE] == "executable"):
         linker.linkExecutable(compiler, workDir, appName)
-    elif (proyectAttributes[Attribute.PROJECT_TYPE] == "staticLib"):
+    elif (projectAttributes[Attribute.PROJECT_TYPE] == "staticLib"):
         linker.linkStaticLib(workDir, appName)
+    elif (projectAttributes[Attribute.PROJECT_TYPE] == "dynamicLib"):
+        linker.linkDynamicLib(compiler, workDir, appName)
 
 def runCommand(currentDir: str, appName: str):
-    execDir = currentDir + "\\bin\\"
-    execCommand = ".\\bin\\" + appName
+    #TODO: Generalize command for Linux and MacOS
+    execCommand = f".\\bin\\{appName}.exe"
 
-    logger.info(f"Running '{execCommand}' from '{execDir}'")
+    logger.info(f"Running '{execCommand}' from '{currentDir}'")
 
-    subprocess.run(f"cd {execDir}", shell=True)
     subprocess.run(execCommand, shell=True)
 
 def cleanCommand(workDir: str, removeRafa: bool = False):

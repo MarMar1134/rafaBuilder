@@ -22,10 +22,10 @@ def defineParser():
     #Init command
     initParser = commands.add_parser(name="init", parents=[common], help="Initializes the current directory with a default 'attributes.rafa' file.",
         description="This command creates a default 'attributes.rafa' file on the calle directory. It also creates a '/rbCache' directory with empty cache files.")
-    initParser.add_argument("-co","--compiler", type=str, default="g++", required=False, dest="compiler", help="specifies the compiler used on this project")
+    initParser.add_argument("-c","--compiler", type=str, default="g++", required=False, dest="compiler", help="specifies the compiler used on this project")
     initParser.add_argument("-s", "--source", type=str, default="src", required=False, dest="srcDir", help="specifies the source directory of the project")
     initParser.add_argument("-a", "--appname", type=str, default="myProject", required=False, dest="appName", help="specifies the name of the application to be compiled")
-    initParser.add_argument("-pt", "--projecttype", type=int, default=0, required=False, dest="projectType", help="specifies the type of the project. 0=executable; 1=staticLib; 2=dynamicLib")
+    initParser.add_argument("-p", "--projecttype", type=int, default=0, required=False, dest="projectType", help="specifies the type of the project. 0=executable; 1=staticLib; 2=dynamicLib")
 
     #Check command
     commands.add_parser(name="check", parents=[common], help="Scans the working directory searching for 'attributes.rafa'",

@@ -1,6 +1,7 @@
 import os
 import sys
 import util.logger as logger
+
 from enum import Enum
 from util.checks import noAttributesCheck, compilerMatchesLanguageCheck, compilerInstalledCheck, existsSrcDirCheck
 
@@ -32,7 +33,7 @@ def getAttributes(workDir: str):
     hasAppNameAttribute: bool = False
     hasProjectTypeAttribute: bool = False
 
-    with open(workDir + "\\" + CONFIG_FILE_NAME) as configFile:
+    with open(os.path.join(workDir, CONFIG_FILE_NAME)) as configFile:
         for lineNumber, line in enumerate(configFile.readlines(), start=1):
             currentLine = line.strip()
 

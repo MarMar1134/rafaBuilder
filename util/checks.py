@@ -3,7 +3,7 @@ import sys
 import shutil
 import util.logger as logger
 
-CPP_COMPILERS = ["g++", "clang++", "c++"]
+CPP_COMPILERS = ["g++", "clang", "c++"]
 C_COMPILERS = ["gcc", "clang", "cc"]
 
 def noAttributesCheck(configFile: str, noCompiler: bool, noSrcDir: bool, noAppName: bool, noProjectType: bool):
@@ -30,39 +30,41 @@ def existsSrcDirCheck(srcDir: str):
 
     return os.path.exists(workingDir)
 
+def isSourceFileCheck(fileExtension: str):
+    return fileExtension == "cpp" or fileExtension == "c"
+
 def isValidFileCheck(fileName: str):
     fileExtension = fileName.split(".").pop(1)
 
     return fileExtension == "cpp" or fileExtension == "c" \
             or fileExtension == "hpp" or fileExtension == "h" \
-            or fileExtension == "o"
+            or fileExtension == "o" or fileExtension == "obj"
 
 def compilerMatchesLanguageCheck(srcDir: str, compiler: str):
-    workDir = os.getcwd()
-    filesDir = os.path.join(workDir, srcDir)
+    filesDir = os.path.join(os.getcwd(), srcDir)
 
     if not os.path.exists(filesDir):
-        logger.error(f"Path:'{filesDir}' is not valid")
+        logger.error(f"Path: '{filesDir}' is not valid")
         sys.exit(1)
 
     def fileGetter(dir: str) -> list[str]:
-        files = os.scandir(dir)
+        srcFilePaths = os.scandir(dir)
         
-        if (files is None):
-            logger.warning(f"Path:'{dir}' has no files")
+        if (srcFilePaths is None):
+            logger.warning(f"Path: '{dir}' has no files")
 
-        srcFiles = []
+        filePaths = []
         
-        for file in files:
-            if (os.path.isfile(file)):
-                srcFiles.append(file.name)
+        for srcFilePath in srcFilePaths:
+            if (os.path.isfile(srcFilePath)):
+                filePaths.append(srcFilePath.name)
             else:
-                newDir = dir + "\\" + file.name
+                newDir = os.path.join(dir, srcFilePath.name)
         
                 for newFile in fileGetter(newDir):
-                    srcFiles.append(newFile)
+                    filePaths.append(newFile)
 
-        return srcFiles
+        return filePaths
 
     files = fileGetter(filesDir)
 

@@ -2,22 +2,20 @@ import os
 import sys
 import subprocess
 import util.logger as logger
-from fileManager import files
-from fileManager import cache
+import fileManager.cache as cache
 
-def libNeedsRecompileCheck(libName: str, objFilePaths: list[str]):
-    cachedObjFiles = cache.readStaticLibCache(libName)
+from fileManager.files import FilePath
+
+def libNeedsRecompileCheck(libName: str, objFilePaths: list[FilePath]):
+    _, cachedObjFiles = cache.readLibCache(libName)
 
     if (cachedObjFiles is None):
         return True
 
     for objFilePath in objFilePaths: 
-        objFileName = files.getFileName(objFilePath)
-        _, objFileDate = cache.readCache(files.getFileName(objFilePath))
-
-        #logger.debug(f"cached obj file date: '{cachedObjFiles[objFileName]}', actual obj file date: '{objFileDate}'. Equals? '{cachedObjFiles[objFileName] == objFileDate}'")
+        _, cachedObjFileDate = cache.readCache(objFilePath)
         
-        if (cachedObjFiles[objFileName] != objFileDate):
+        if (cachedObjFiles[objFilePath.name] != cachedObjFileDate):
             return True
 
     return False
@@ -31,15 +29,13 @@ def linkExecutable(compiler: str, workDir: str, appName: str):
         logger.error("Can't build executable as '/build' doesn't exist. Try using 'rb compile' to generate .o files")
         sys.exit(1)
     
-    objFiles = files.getFilePathsFromDir(buildDir)
+    objFilePaths = FilePath.getFilePaths(buildDir)
     
-    for objFile in objFiles:
-        if (not objFile.split(".").pop(1) == "o"):
+    for objFilePath in objFilePaths:
+        if (not objFilePath.extension == "o"):
             continue
     
-        objFile = objFile.replace("\\", "/")
-    
-        command = command + objFile + " "
+        command = command + objFilePath.path + " "
     
     if (not os.path.exists(binDir)):
         os.mkdir(binDir)
@@ -58,7 +54,7 @@ def linkStaticLib(workDir: str, appName: str):
         logger.error("Can't build static library as '/build' doesn't exist. Try using 'rb compile' to generate .o files")
         sys.exit(1)
 
-    objFilePaths = files.getFilePathsFromDir(buildDir)
+    objFilePaths = FilePath.getFilePaths(buildDir)
 
     libName = "lib" + appName + ".a "
 
@@ -72,18 +68,12 @@ def linkStaticLib(workDir: str, appName: str):
     objFileDates = {}
 
     for objFilePath in objFilePaths:
-        if (not objFilePath.split(".").pop(1) == "o"):
+        if (not objFilePath.extension == "o"):
             continue
 
-
-        objFileName = files.getFileName(objFilePath)
-        objFileDate = str(os.path.getmtime(objFilePath))
-
-        objFileDates[objFileName] = objFileDate
-
-        objFilePath = objFilePath.replace("\\", "/")
+        objFileDates[objFilePath.name] = objFilePath.date
                 
-        command = command + objFilePath + " "
+        command = command + objFilePath.path + " "
 
     logger.debug(f"Linker 'make staticLib' command: '{command}'")
 
@@ -92,4 +82,47 @@ def linkStaticLib(workDir: str, appName: str):
 
     subprocess.run(command)
 
-    cache.writeStaticLibCache(libName, objFileDates)
+    libPath = FilePath(os.path.join("bin", libName.strip()))
+
+    cache.writeLibCache(libPath, objFileDates)
+
+def linkDynamicLib(compiler: str, workDir: str, appName: str):
+    buildDir = os.path.join(workDir, "build")
+    binDir = os.path.join(workDir, "bin")
+    
+    if (not os.path.exists(buildDir)):
+        logger.error("Can't build static library as '/build' doesn't exist. Try using 'rb compile' to generate .o files")
+        sys.exit(1)
+    
+    objFilePaths = FilePath.getFilePaths(buildDir)
+    
+    libName = "lib" + appName + ".dll"
+    importantLibName = "lib" + appName + ".dll.a"
+
+    command = compiler + " --shared "
+
+    objFileDates = {}
+
+    for objFilePath in objFilePaths:
+        if (not objFilePath.extension == "o"):
+            continue
+    
+        objFileDates[objFilePath.name] = objFilePath.date
+
+        if ("main" in objFilePath.name):
+            logger.warning("Dynamic libraries shouldn't have a 'main' file")
+                    
+        command = command + objFilePath.path + " "
+
+    command = command + f"-o bin/{libName} -Wl,--out-implib,bin/{importantLibName}"
+
+    logger.debug(f"Linker 'make dynamicLib' command: {command}")
+
+    if (not os.path.exists(binDir)):
+            os.mkdir(binDir)
+    
+    subprocess.run(command)
+    
+    libPath = FilePath(os.path.join("bin", libName))
+    
+    cache.writeLibCache(libPath, objFileDates, True)
