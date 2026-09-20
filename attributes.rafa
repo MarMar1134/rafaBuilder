@@ -1,4 +1,6 @@
 compiler("g++")
 srcDir("example")
-appName("exampleApp")
-projectType("executable")
+appName("myProject")
+projectType(EXECUTABLE)
+
+addStaticLibs("list")

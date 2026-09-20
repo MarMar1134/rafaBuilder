@@ -28,15 +28,8 @@ def main():
         logger.task(f"Working directory '{workDir}' has been initialized!")
         sys.exit(0)
 
-    attributes = att.getAttributes(workDir)
-
-    compiler = attributes[att.Attribute.COMPILER]
-    srcDir = workDir + "\\" + attributes[att.Attribute.SOURCE_DIR]
-    appName = attributes[att.Attribute.APP_NAME]
-    projectType = attributes[att.Attribute.PROJECT_TYPE]
-
     if (option == "check"):
-        logger.main("Searching for 'attributes.rafa'")
+        logger.task("Searching for 'attributes.rafa'...")
 
         configFound = task.rafaCheck(workDir)
 
@@ -44,41 +37,56 @@ def main():
             logger.error(f"Config file 'attributes.rafa' was not found on '{workDir}'")
             sys.exit(1)
         else:
+            attributes = att.getAttributes(workDir)
+
             logger.task(f"Config file 'attributes.rafa' found on '{workDir}'")
 
-            logger.main(f"'compiler' set to: '{attributes[att.Attribute.COMPILER]}'")
-            logger.main(f"'srcDir' set to: '{attributes[att.Attribute.SOURCE_DIR]}'")
-            logger.main(f"'appName' set to: '{attributes[att.Attribute.APP_NAME]}'")
-            logger.main(f"'projectType' set to: '{attributes[att.Attribute.PROJECT_TYPE]}'")
+            logger.info(f"Showing 'attributes.rafa' contents...")
+            logger.info(f"'compiler' set to: '{attributes[att.Attribute.COMPILER]}'")
+            logger.info(f"'srcDir' set to: '{attributes[att.Attribute.SOURCE_DIR]}'")
+            logger.info(f"'appName' set to: '{attributes[att.Attribute.APP_NAME]}'")
+            logger.info(f"'projectType' set to: '{attributes[att.Attribute.PROJECT_TYPE]}'")
+
+            for staticLib in attributes[att.Attribute.STATIC_LIBS]:
+                logger.info(f"Added static library: '{staticLib}'")
+
+            for dynamicLib in attributes[att.Attribute.DYNAMIC_LIBS]:
+                logger.info(f"Added static library: '{dynamicLib}'")
+
             sys.exit(0)
 
-    cache.inicializeCache()
+    if (not os.path.exists(os.path.join(workDir, "rbCache"))):
+        cache.inicializeCache()
+
+    attributes = att.getAttributes(workDir)
+    
+    compiler = attributes[att.Attribute.COMPILER]
+    srcDir = workDir + "\\" + attributes[att.Attribute.SOURCE_DIR]
+    appName = attributes[att.Attribute.APP_NAME]
+    projectType: att.ProjectType = attributes[att.Attribute.PROJECT_TYPE]
+    
     srcFilePaths: list[FilePath] = FilePath.getFilePaths(srcDir)
 
     if(option == "compile"):
-        task.rafaCompile(compiler, workDir, srcFilePaths)
+        task.rafaCompile(compiler, workDir, attributes[att.Attribute.STATIC_LIBS])
 
         logger.task("Task completed! You can find your object files under '<workDir>/build'")
         sys.exit(0)
     elif(option == "link"):
-        task.rafaLink(compiler, workDir, appName)
+        task.rafaLink(compiler, workDir)
 
         logger.task("Task completed! You can find your executable under '<workDir>/bin'")
         sys.exit(0)
     elif(option == "make"):
-        task.rafaMake(compiler, workDir, srcFilePaths, appName)
+        task.rafaMake(compiler, workDir, attributes[att.Attribute.STATIC_LIBS])
 
         logger.task("Task completed! You can find your executable under '<workDir>/bin'")
         sys.exit(0)
     elif(option == "run"):
-        logger.main("Starting run...")
+        if (projectType != att.ProjectType.EXECUTABLE):
+            logger.warning(f"'projectType' is set to '{projectType.value}', this task will be treated as 'make'")
 
-        if (projectType != "executable"):
-            logger.warning(f"'projectType' is set to '{projectType}', this task will be treated as 'make'")
-
-        task.rafaRun(compiler, workDir, srcFilePaths, appName, projectType)
-
-        logger.task("Run complete!")
+        task.rafaRun(compiler, workDir, appName, projectType, attributes[att.Attribute.STATIC_LIBS])
 
         sys.exit(0)
     elif(option == "clean"):

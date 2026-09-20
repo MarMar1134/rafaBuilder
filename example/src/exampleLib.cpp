@@ -1,9 +1,5 @@
-#include "../includes/exampleLib.hpp"
+#include "../include/exampleLib.hpp"
 
-int internalSum(int a, int b){
-    return a + b;
-}
-
-int sum(int a, int b){
-    return a + b;
+int restThree(int a, int b, int c){
+    return a - b - c;
 }

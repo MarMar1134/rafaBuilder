@@ -2,6 +2,9 @@ import os
 import sys
 import shutil
 import util.logger as logger
+import fileManager.cache as cache
+
+from fileManager.files import FilePath
 
 CPP_COMPILERS = ["g++", "clang", "c++"]
 C_COMPILERS = ["gcc", "clang", "cc"]
@@ -25,6 +28,23 @@ def compilerInstalledCheck(configFile: str, compiler: str):
         logger.error(f"On {configFile}, '{compiler}' compiler is not present on this system's PATH")
         sys.exit(1)
 
+def libNeedsRecompileCheck(libName: str, objFilePaths: list[FilePath]):
+    _, cachedObjFiles = cache.readLibCache(libName)
+
+    if (cachedObjFiles is None):
+        return True
+
+    for objFilePath in objFilePaths: 
+        _, cachedObjFileDate = cache.readCache(objFilePath)
+
+        if (objFilePath not in cachedObjFiles):
+            return True
+        
+        if (cachedObjFiles[objFilePath.name] != cachedObjFileDate):
+            return True
+
+    return False
+
 def existsSrcDirCheck(srcDir: str):
     workingDir = os.path.join(os.getcwd(), srcDir)
 
@@ -32,13 +52,6 @@ def existsSrcDirCheck(srcDir: str):
 
 def isSourceFileCheck(fileExtension: str):
     return fileExtension == "cpp" or fileExtension == "c"
-
-def isValidFileCheck(fileName: str):
-    fileExtension = fileName.split(".").pop(1)
-
-    return fileExtension == "cpp" or fileExtension == "c" \
-            or fileExtension == "hpp" or fileExtension == "h" \
-            or fileExtension == "o" or fileExtension == "obj"
 
 def compilerMatchesLanguageCheck(srcDir: str, compiler: str):
     filesDir = os.path.join(os.getcwd(), srcDir)
@@ -70,8 +83,8 @@ def compilerMatchesLanguageCheck(srcDir: str, compiler: str):
 
     for file in files:
         if (file.split(".").pop(1) == "cpp" and not (compiler in CPP_COMPILERS)):
-            return -1
+            logger.warning(f"Utilizing a 'c' compiler to work with 'cpp' files")
+            return
         elif(file.split(".").pop(1) == "c" and not (compiler in C_COMPILERS)):
-            return -2
-
-    return 0
+            logger.warning(f"Utilizing a 'cpp' compiler to work with 'c' files")
+            return

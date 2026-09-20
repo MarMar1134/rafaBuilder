@@ -1,5 +1,5 @@
-#include "../../includes/exampleFolder/exampleFolderLib.hpp"
+#include "../../include/exampleFolder/exampleFolderLib.hpp"
 
-int rest(int a, int b){
-    return a - b;
+int sumThree(int a, int b, int c){
+    return a + b + c;
 }

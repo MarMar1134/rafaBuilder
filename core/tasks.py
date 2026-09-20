@@ -3,6 +3,7 @@ import util.logger as logger
 import core.commands as cmd
 
 from fileManager.files import FilePath
+from core.attributes import ProjectType
 
 def rafaInit(args):
     cmd.initCommand(args)
@@ -17,41 +18,40 @@ def rafaCheck(workDir: str) -> bool:
 
     return False
 
-def rafaCompile(compiler: str, workDir: str, filePaths: list[FilePath]):
+def rafaCompile(compiler: str, workDir: str, staticLibs: list[str] | None):
     logger.main("Compiling files...")
 
-    cmd.compileCommand(compiler, workDir, filePaths)
+    cmd.compileCommand(compiler, workDir)
+
+    if (staticLibs):
+        for staticLib in staticLibs:
+            cmd.compileCommand(compiler, workDir, staticLib)
 
     logger.main("Compiling complete!")
 
-def rafaLink(compiler: str, workDir: str, appName: str):
+def rafaLink(compiler: str, workDir: str):
     logger.main(f"Linking files...")
 
-    cmd.linkCommand(compiler, workDir, appName)
+    cmd.linkCommand(compiler, workDir)
 
     logger.main("Linking complete!")
 
-def rafaMake(compiler: str, workDir: str, filePaths: list[FilePath], appName: str):
-    logger.main("Compiling files...")
-    cmd.compileCommand(compiler, workDir, filePaths)
-    logger.main("Compiling complete!")
+def rafaMake(compiler: str, workDir: str, staticLibs: list[str] | None = None):
+    #logger.main("Compiling files...")
+    rafaCompile(compiler, workDir, staticLibs)
+    #logger.main("Compiling complete!")
 
-    logger.main(f"Linking files...")
-    cmd.linkCommand(compiler, workDir, appName)
-    logger.main("Linking complete!")
+    #logger.main(f"Linking files...")
+    rafaLink(compiler, workDir)
+    #logger.main("Linking complete!")
 
-def rafaRun(compiler: str, workDir: str, filePaths: list[FilePath], appName: str, projectType: str):
-    if (projectType == "executable" and os.path.exists(os.path.join(workDir, "bin", appName + ".exe"))):
-        logger.info("Running directy, as compilation wasn't needed")
-        cmd.runCommand(workDir, appName)
-        return
+def rafaRun(compiler: str, workDir: str, appName: str, projectType: ProjectType, staticLibs: list[str] | None = None):
+    rafaMake(compiler, workDir, staticLibs)
 
-    cmd.compileCommand(compiler, workDir, filePaths)
-        
-    cmd.linkCommand(compiler, workDir, appName)
-
-    if (projectType == "executable"):
+    if (projectType == ProjectType.EXECUTABLE):
+            logger.main("Starting run...")
             cmd.runCommand(workDir, appName)
+            logger.main("Run complete!")
 
 def rafaClean(workDir: str):
     cmd.cleanCommand(workDir)
